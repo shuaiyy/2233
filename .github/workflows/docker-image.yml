@@ -5,6 +5,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
       - name: Build the Docker image
         run: |
           docker version
@@ -12,7 +13,7 @@ jobs:
           docker login --username=${{ secrets.DOCKER_USERNAME }} --password=${{ secrets.DOCKER_PASSWORD }} registry.cn-shanghai.aliyuncs.com
           # 使用Dockerfile构建镜像
           pwd
-          ls -al
+          ls -alh
           tag=`cat tag.txt`
           docker build . --file current.Dockerfile --tag registry.cn-shanghai.aliyuncs.com/shuaiyy/2233:${tag}
           # 推送镜像到镜像仓库
