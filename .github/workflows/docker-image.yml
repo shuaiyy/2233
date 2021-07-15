@@ -13,7 +13,6 @@ jobs:
           # 使用Dockerfile构建镜像
           pwd
           ls -al
-          cd 2233
           tag=`cat tag.txt`
           docker build . --file current.Dockerfile --tag registry.cn-shanghai.aliyuncs.com/shuaiyy/2233:${tag}
           # 推送镜像到镜像仓库
