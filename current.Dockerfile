@@ -17,7 +17,10 @@ ENV \
     DEBIAN_FRONTEND="noninteractive" \
     RESOURCES_PATH="/resources" \
     SSL_RESOURCES_PATH="/resources/ssl" \
-    WORKSPACE_HOME="/workspace"
+    WORKSPACE_HOME="/workspace" \
+    APT_UPDATE="apt-get update > /dev/null" \
+    CLEAN_SH="clean-layer.sh > /dev/null" \
+    NULL_OUT="> /dev/null"
 
 WORKDIR $HOME
 
@@ -39,7 +42,7 @@ COPY resources/scripts/fix-permissions.sh  /usr/bin/fix-permissions.sh
 # Generate and Set locals
 # https://stackoverflow.com/questions/28405902/how-to-set-the-locale-inside-a-debian-ubuntu-docker-container#38553499
 RUN \
-    apt-get update && \
+    ${APT_UPDATE} && \
     apt-get install -y locales && \
     # install locales-all?
     sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
@@ -47,7 +50,7 @@ RUN \
     dpkg-reconfigure --frontend=noninteractive locales && \
     update-locale LANG=en_US.UTF-8 && \
     # Cleanup
-    clean-layer.sh
+    ${CLEAN_SH}
 
 ENV LC_ALL="en_US.UTF-8" \
     LANG="en_US.UTF-8" \
@@ -58,10 +61,10 @@ RUN \
     # TODO add repos?
     # add-apt-repository ppa:apt-fast/stable
     # add-apt-repository 'deb http://security.ubuntu.com/ubuntu xenial-security main'
-    apt-get update --fix-missing && \
+    ${APT_UPDATE} --fix-missing && \
     apt-get install -y sudo apt-utils && \
     apt-get upgrade -y && \
-    apt-get update && \
+    ${APT_UPDATE} && \
     apt-get install -y --no-install-recommends \
         # This is necessary for apt to access HTTPS sources:
         apt-transport-https \
@@ -187,7 +190,7 @@ RUN \
         zlib1g-dev && \
     # Update git to newest version
     add-apt-repository -y ppa:git-core/ppa  && \
-    apt-get update && \
+    ${APT_UPDATE} && \
     apt-get install -y --no-install-recommends git && \
     # Fix all execution permissions
     chmod -R a+rwx /usr/local/bin/ && \
@@ -196,7 +199,7 @@ RUN \
     # Fix permissions
     fix-permissions.sh $HOME && \
     # Cleanup
-    clean-layer.sh
+    ${CLEAN_SH}
 
 # Add tini
 RUN wget --no-verbose https://github.com/krallin/tini/releases/download/v0.19.0/tini -O /tini && \
@@ -204,7 +207,7 @@ RUN wget --no-verbose https://github.com/krallin/tini/releases/download/v0.19.0/
 
 # prepare ssh for inter-container communication for remote python kernel
 RUN \
-    apt-get update && \
+    ${APT_UPDATE} && \
     apt-get install -y --no-install-recommends \
         openssh-client \
         openssh-server \
@@ -224,7 +227,7 @@ RUN \
     # Fix permissions
     fix-permissions.sh $HOME && \
     # Cleanup
-    clean-layer.sh
+    ${CLEAN_SH}
 
 ### END BASICS ###
 
@@ -256,17 +259,17 @@ RUN wget --no-verbose https://repo.anaconda.com/miniconda/Miniconda3-py38_${COND
     # Deactivate pip interoperability (currently default), otherwise conda tries to uninstall pip packages
     $CONDA_ROOT/bin/conda config --system --set pip_interop_enabled false && \
     # Update conda
-    $CONDA_ROOT/bin/conda update -y -n base -c defaults conda && \
-    $CONDA_ROOT/bin/conda update -y setuptools && \
-    $CONDA_ROOT/bin/conda install -y conda-build && \
+    $CONDA_ROOT/bin/conda update -y -n base -c defaults conda ${NULL_OUT} && \
+    $CONDA_ROOT/bin/conda update -y setuptools ${NULL_OUT} && \
+    $CONDA_ROOT/bin/conda install -y conda-build ${NULL_OUT} && \
     # Update selected packages - install python 3.8.x
-    $CONDA_ROOT/bin/conda install -y --update-all python=$PYTHON_VERSION && \
+    $CONDA_ROOT/bin/conda install -y --update-all python=$PYTHON_VERSION ${NULL_OUT} && \
     # Link Conda
     ln -s $CONDA_ROOT/bin/python /usr/local/bin/python && \
     ln -s $CONDA_ROOT/bin/conda /usr/bin/conda && \
     # Update
-    $CONDA_ROOT/bin/conda install -y pip && \
-    $CONDA_ROOT/bin/pip install --upgrade pip && \
+    $CONDA_ROOT/bin/conda install -y pip ${NULL_OUT} && \
+    $CONDA_ROOT/bin/pip install --upgrade pip ${NULL_OUT} && \
     chmod -R a+rwx /usr/local/bin/ && \
     # Cleanup - Remove all here since conda is not in path as of now
     # find /opt/conda/ -follow -type f -name '*.a' -delete && \
@@ -276,7 +279,7 @@ RUN wget --no-verbose https://repo.anaconda.com/miniconda/Miniconda3-py38_${COND
     $CONDA_ROOT/bin/conda build purge-all && \
     # Fix permissions
     fix-permissions.sh $CONDA_ROOT && \
-    clean-layer.sh
+    ${CLEAN_SH}
 
 ENV PATH=$CONDA_ROOT/bin:$PATH
 
@@ -290,27 +293,27 @@ RUN git clone https://github.com/pyenv/pyenv.git $RESOURCES_PATH/.pyenv && \
     git clone git://github.com/pyenv/pyenv-doctor.git $RESOURCES_PATH/.pyenv/plugins/pyenv-doctor && \
     git clone https://github.com/pyenv/pyenv-update.git $RESOURCES_PATH/.pyenv/plugins/pyenv-update && \
     git clone https://github.com/pyenv/pyenv-which-ext.git $RESOURCES_PATH/.pyenv/plugins/pyenv-which-ext && \
-    apt-get update && \
+    ${APT_UPDATE} && \
     # TODO: lib might contain high vulnerability
     # Required by pyenv
     apt-get install -y --no-install-recommends libffi-dev && \
-    clean-layer.sh
+    ${CLEAN_SH}
 
 # Add pyenv to path
 ENV PATH=$RESOURCES_PATH/.pyenv/shims:$RESOURCES_PATH/.pyenv/bin:$PATH \
     PYENV_ROOT=$RESOURCES_PATH/.pyenv
 
 # Install pipx
-RUN pip install pipx && \
+RUN pip install pipx ${NULL_OUT} && \
     # Configure pipx
     python -m pipx ensurepath && \
     # Cleanup
-    clean-layer.sh
+    ${CLEAN_SH}
 ENV PATH=$HOME/.local/bin:$PATH
 
 # Install node.js
 RUN \
-    apt-get update && \
+    ${APT_UPDATE} && \
     # https://nodejs.org/en/about/releases/ use even numbered releases, i.e. LTS versions
     curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash - && \
     apt-get install -y nodejs && \
@@ -338,7 +341,7 @@ RUN \
     # Update all packages to latest version
     /usr/bin/npm update -g && \
     # Cleanup
-    clean-layer.sh
+    ${CLEAN_SH}
 
 ENV PATH=/opt/node/bin:$PATH
 
@@ -358,16 +361,16 @@ RUN \
     # rm /usr/bin/python3 && \
     # rm /usr/bin/python3.5
     ln -s -f $CONDA_ROOT/bin/python /usr/bin/python && \
-    apt-get update && \
+    ${APT_UPDATE} && \
     # upgrade pip
-    pip install --upgrade pip && \
+    pip install --upgrade pip ${NULL_OUT} && \
     # If minimal flavor - install
     if [ "$WORKSPACE_FLAVOR" = "minimal" ]; then \
         # Install nomkl - mkl needs lots of space
         conda install -y --update-all 'python='$PYTHON_VERSION nomkl ; \
     else \
         # Install mkl for faster computations
-        conda install -y --update-all 'python='$PYTHON_VERSION mkl-service mkl ; \
+        conda install -y --update-all 'python='$PYTHON_VERSION mkl-service mkl ${NULL_OUT}; \
     fi && \
     # Install some basics - required to run container
     conda install -y --update-all \
@@ -383,13 +386,13 @@ RUN \
             'scipy==1.7.*' \
             'numpy==1.19.*' \
             scikit-learn \
-            numexpr && \
+            numexpr ${NULL_OUT} && \
             # installed via apt-get and pip: protobuf \
             # installed via apt-get: zlib  && \
     # Switch of channel priority, makes some trouble
     conda config --system --set channel_priority false && \
     # Install minimal pip requirements
-    pip install --no-cache-dir --upgrade --upgrade-strategy only-if-needed -r ${RESOURCES_PATH}/libraries/requirements-minimal.txt && \
+    pip install --no-cache-dir --upgrade --upgrade-strategy only-if-needed -r ${RESOURCES_PATH}/libraries/requirements-minimal.txt ${NULL_OUT} && \
     # If minimal flavor - exit here
     if [ "$WORKSPACE_FLAVOR" = "minimal" ]; then \
         # Remove pandoc - package for markdown conversion - not needed
@@ -397,7 +400,7 @@ RUN \
         # Fix permissions
         fix-permissions.sh $CONDA_ROOT && \
         # Cleanup
-        clean-layer.sh && \
+        ${CLEAN_SH} && \
         exit 0 ; \
     fi && \
     # OpenMPI support
@@ -405,19 +408,19 @@ RUN \
     conda install -y --freeze-installed  \
         'python='$PYTHON_VERSION \
         boost \
-        mkl-include && \
+        mkl-include ${NULL_OUT} && \
     # Install mkldnn
-    conda install -y --freeze-installed -c mingfeima mkldnn && \
+    conda install -y --freeze-installed -c mingfeima mkldnn ${NULL_OUT} && \
     # Install pytorch - cpu only
-    conda install -y -c pytorch "pytorch==1.9.*" cpuonly && \
+    conda install -y -c pytorch "pytorch==1.9.*" cpuonly ${NULL_OUT} && \
     # Install light pip requirements
-    pip install --no-cache-dir --upgrade --upgrade-strategy only-if-needed -r ${RESOURCES_PATH}/libraries/requirements-light.txt && \
+    pip install --no-cache-dir --upgrade --upgrade-strategy only-if-needed -r ${RESOURCES_PATH}/libraries/requirements-light.txt ${NULL_OUT} && \
     # If light light flavor - exit here
     if [ "$WORKSPACE_FLAVOR" = "light" ]; then \
         # Fix permissions
         fix-permissions.sh $CONDA_ROOT && \
         # Cleanup
-        clean-layer.sh && \
+        ${CLEAN_SH} && \
         exit 0 ; \
     fi && \
     # libartals == 40MB liblapack-dev == 20 MB
@@ -429,31 +432,31 @@ RUN \
     apt-get install -y --no-install-recommends libtbb-dev && \
     # required for tesseract: 11MB - tesseract-ocr-dev?
     apt-get install -y --no-install-recommends libtesseract-dev && \
-    pip install --no-cache-dir tesserocr && \
+    pip install --no-cache-dir tesserocr ${NULL_OUT} && \
     # TODO: installs tenserflow 2.4 - Required for tensorflow graphics (9MB)
-    apt-get install -y --no-install-recommends libopenexr-dev && \
+    apt-get install -y --no-install-recommends libopenexr-dev ${NULL_OUT} && \
     #pip install --no-cache-dir tensorflow-graphics==2020.5.20 && \
     # GCC OpenMP (GOMP) support library
-    apt-get install -y --no-install-recommends libgomp1 && \
+    apt-get install -y --no-install-recommends libgomp1 ${NULL_OUT} && \
     # Install Intel(R) Compiler Runtime - numba optimization
     # TODO: don't install, results in memory error: conda install -y --freeze-installed -c numba icc_rt && \
     # Install libjpeg turbo for speedup in image processing
-    conda install -y --freeze-installed libjpeg-turbo && \
+    conda install -y --freeze-installed libjpeg-turbo ${NULL_OUT} && \
     # Add snakemake for workflow management
-    conda install -y -c bioconda -c conda-forge snakemake-minimal && \
+    conda install -y -c bioconda -c conda-forge snakemake-minimal ${NULL_OUT} && \
     # Add mamba as conda alternativ
-    conda install -y -c conda-forge mamba && \
+    conda install -y -c conda-forge mamba ${NULL_OUT} && \
     # Faiss - A library for efficient similarity search and clustering of dense vectors.
-    conda install -y --freeze-installed faiss-cpu && \
+    conda install -y --freeze-installed faiss-cpu ${NULL_OUT} && \
     # Install full pip requirements
-    pip install --no-cache-dir --upgrade --upgrade-strategy only-if-needed --use-deprecated=legacy-resolver -r ${RESOURCES_PATH}/libraries/requirements-full.txt && \
+    pip install --no-cache-dir --upgrade --upgrade-strategy only-if-needed --use-deprecated=legacy-resolver -r ${RESOURCES_PATH}/libraries/requirements-full.txt ${NULL_OUT} && \
     # Setup Spacy
     # Spacy - download and large language removal
     python -m spacy download en && \
     # Fix permissions
     fix-permissions.sh $CONDA_ROOT && \
     # Cleanup
-    clean-layer.sh
+    ${CLEAN_SH}
 
 # Fix conda version
 RUN \
@@ -499,7 +502,7 @@ RUN \
     # Disable pydeck extension, cannot be loaded (404)
     jupyter nbextension disable pydeck/extension && \
     # Install and activate Jupyter Tensorboard
-    pip install --no-cache-dir git+https://github.com/InfuseAI/jupyter_tensorboard.git && \
+    pip install --no-cache-dir git+https://github.com/InfuseAI/jupyter_tensorboard.git ${NULL_OUT} && \
     jupyter tensorboard enable --sys-prefix && \
     # TODO moved to configuration files = resources/jupyter/nbconfig Edit notebook config
     # echo '{"nbext_hide_incompat": false}' > $HOME/.jupyter/nbconfig/common.json && \
@@ -507,7 +510,7 @@ RUN \
     # If minimal flavor - exit here
     if [ "$WORKSPACE_FLAVOR" = "minimal" ]; then \
         # Cleanup
-        clean-layer.sh && \
+        ${CLEAN_SH} && \
         exit 0 ; \
     fi && \
     # TODO: Not installed. Disable Jupyter Server Proxy
@@ -518,11 +521,11 @@ RUN \
     # If light flavor - exit here
     if [ "$WORKSPACE_FLAVOR" = "light" ]; then \
         # Cleanup
-        clean-layer.sh && \
+        ${CLEAN_SH} && \
         exit 0 ; \
     fi && \
     # Install and activate what if tool
-    pip install witwidget && \
+    pip install witwidget ${NULL_OUT} && \
     jupyter nbextension install --py --symlink --sys-prefix witwidget && \
     jupyter nbextension enable --py --sys-prefix witwidget && \
     # Activate qgrid
@@ -535,7 +538,7 @@ RUN \
     ipcluster nbextension enable && \
     # Fix permissions? fix-permissions.sh $CONDA_ROOT && \
     # Cleanup
-    clean-layer.sh
+    ${CLEAN_SH}
 
 # install jupyterlab
 RUN \
@@ -554,16 +557,16 @@ RUN \
         jupyter lab clean && \
         jlpm cache clean && \
         rm -rf $CONDA_ROOT/share/jupyter/lab/staging && \
-        clean-layer.sh && \
+        ${CLEAN_SH} && \
         exit 0 ; \
     fi && \
     $lab_ext_install @jupyterlab/toc && \
     # install temporarily from gitrepo due to the issue that jupyterlab_tensorboard does not work with 3.x yet as described here: https://github.com/chaoleili/jupyterlab_tensorboard/issues/28#issuecomment-783594541
     #$lab_ext_install jupyterlab_tensorboard && \
-    pip install git+https://github.com/chaoleili/jupyterlab_tensorboard.git && \
+    pip install git+https://github.com/chaoleili/jupyterlab_tensorboard.git ${NULL_OUT} && \
     # install jupyterlab git
     # $lab_ext_install @jupyterlab/git && \
-    pip install jupyterlab-git && \
+    pip install jupyterlab-git ${NULL_OUT} && \
     # jupyter serverextension enable --py jupyterlab_git && \
     # For Matplotlib: https://github.com/matplotlib/jupyter-matplotlib
     #$lab_ext_install jupyter-matplotlib && \
@@ -575,7 +578,7 @@ RUN \
         jupyter lab clean && \
         jlpm cache clean && \
         rm -rf $CONDA_ROOT/share/jupyter/lab/staging && \
-        clean-layer.sh && \
+        ${CLEAN_SH} && \
         exit 0 ; \
     fi \
     # Install jupyterlab language server support
@@ -587,7 +590,7 @@ RUN \
     # produces build error: jupyter labextension install jupyterlab-chart-editor && \
     $lab_ext_install jupyterlab-chart-editor && \
     # Install jupyterlab variable inspector - https://github.com/lckr/jupyterlab-variableInspector
-    pip install lckr-jupyterlab-variableinspector && \
+    pip install lckr-jupyterlab-variableinspector ${NULL_OUT} && \
     # For holoview
     # TODO: pyviz is not yet supported by the current JupyterLab version
     #     $lab_ext_install @pyviz/jupyterlab_pyviz && \
@@ -596,7 +599,7 @@ RUN \
     # $lab_ext_install @jupyterlab/debugger && \
     # Install jupyterlab code formattor - https://github.com/ryantam626/jupyterlab_code_formatter
     $lab_ext_install @ryantam626/jupyterlab_code_formatter && \
-    pip install jupyterlab_code_formatter && \
+    pip install jupyterlab_code_formatter ${NULL_OUT} && \
     jupyter serverextension enable --py jupyterlab_code_formatter \
     # Final build with minimization
     && jupyter lab build -y --debug-log-path=/dev/stdout --log-level=WARN && \
@@ -607,13 +610,15 @@ RUN \
     jlpm cache clean && \
     # Remove build folder -> should be remove by lab clean as well?
     rm -rf $CONDA_ROOT/share/jupyter/lab/staging && \
-    clean-layer.sh
+    ${CLEAN_SH}
 
 # Additional jupyter configuration
 COPY resources/jupyter/jupyter_notebook_config.py /etc/jupyter/
 COPY resources/jupyter/sidebar.jupyterlab-settings $HOME/.jupyter/lab/user-settings/@jupyterlab/application-extension/
 COPY resources/jupyter/plugin.jupyterlab-settings $HOME/.jupyter/lab/user-settings/@jupyterlab/extensionmanager-extension/
 COPY resources/jupyter/ipython_config.py /etc/ipython/ipython_config.py
+
+COPY resources/branding $RESOURCES_PATH/branding
 
 # Branding of various components
 RUN \
