@@ -18,9 +18,7 @@ ENV \
     RESOURCES_PATH="/resources" \
     SSL_RESOURCES_PATH="/resources/ssl" \
     WORKSPACE_HOME="/workspace" \
-    APT_UPDATE="apt-get update > /dev/null" \
-    CLEAN_SH="clean-layer.sh > /dev/null" \
-    NULL_OUT="> /dev/null"
+    CLEAN_SH='clean-layer.sh > /dev/null'
 
 WORKDIR $HOME
 
@@ -42,7 +40,7 @@ COPY resources/scripts/fix-permissions.sh  /usr/bin/fix-permissions.sh
 # Generate and Set locals
 # https://stackoverflow.com/questions/28405902/how-to-set-the-locale-inside-a-debian-ubuntu-docker-container#38553499
 RUN \
-    ${APT_UPDATE} && \
+    apt-get update > /dev/null && \
     apt-get install -y locales && \
     # install locales-all?
     sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
@@ -61,10 +59,10 @@ RUN \
     # TODO add repos?
     # add-apt-repository ppa:apt-fast/stable
     # add-apt-repository 'deb http://security.ubuntu.com/ubuntu xenial-security main'
-    ${APT_UPDATE} --fix-missing && \
+    apt-get update --fix-missing  > /dev/null && \
     apt-get install -y sudo apt-utils && \
     apt-get upgrade -y && \
-    ${APT_UPDATE} && \
+    apt-get update > /dev/null && \
     apt-get install -y --no-install-recommends \
         # This is necessary for apt to access HTTPS sources:
         apt-transport-https \
@@ -190,7 +188,7 @@ RUN \
         zlib1g-dev && \
     # Update git to newest version
     add-apt-repository -y ppa:git-core/ppa  && \
-    ${APT_UPDATE} && \
+    apt-get update > /dev/null && \
     apt-get install -y --no-install-recommends git && \
     # Fix all execution permissions
     chmod -R a+rwx /usr/local/bin/ && \
@@ -207,7 +205,7 @@ RUN wget --no-verbose https://github.com/krallin/tini/releases/download/v0.19.0/
 
 # prepare ssh for inter-container communication for remote python kernel
 RUN \
-    ${APT_UPDATE} && \
+    apt-get update > /dev/null && \
     apt-get install -y --no-install-recommends \
         openssh-client \
         openssh-server \
@@ -259,17 +257,17 @@ RUN wget --no-verbose https://repo.anaconda.com/miniconda/Miniconda3-py38_${COND
     # Deactivate pip interoperability (currently default), otherwise conda tries to uninstall pip packages
     $CONDA_ROOT/bin/conda config --system --set pip_interop_enabled false && \
     # Update conda
-    $CONDA_ROOT/bin/conda update -y -n base -c defaults conda ${NULL_OUT} && \
-    $CONDA_ROOT/bin/conda update -y setuptools ${NULL_OUT} && \
-    $CONDA_ROOT/bin/conda install -y conda-build ${NULL_OUT} && \
+    $CONDA_ROOT/bin/conda update -y -n base -c defaults conda > /dev/null && \
+    $CONDA_ROOT/bin/conda update -y setuptools > /dev/null && \
+    $CONDA_ROOT/bin/conda install -y conda-build > /dev/null && \
     # Update selected packages - install python 3.8.x
-    $CONDA_ROOT/bin/conda install -y --update-all python=$PYTHON_VERSION ${NULL_OUT} && \
+    $CONDA_ROOT/bin/conda install -y --update-all python=$PYTHON_VERSION > /dev/null && \
     # Link Conda
     ln -s $CONDA_ROOT/bin/python /usr/local/bin/python && \
     ln -s $CONDA_ROOT/bin/conda /usr/bin/conda && \
     # Update
-    $CONDA_ROOT/bin/conda install -y pip ${NULL_OUT} && \
-    $CONDA_ROOT/bin/pip install --upgrade pip ${NULL_OUT} && \
+    $CONDA_ROOT/bin/conda install -y pip > /dev/null && \
+    $CONDA_ROOT/bin/pip install --upgrade pip > /dev/null && \
     chmod -R a+rwx /usr/local/bin/ && \
     # Cleanup - Remove all here since conda is not in path as of now
     # find /opt/conda/ -follow -type f -name '*.a' -delete && \
@@ -293,7 +291,7 @@ RUN git clone https://github.com/pyenv/pyenv.git $RESOURCES_PATH/.pyenv && \
     git clone git://github.com/pyenv/pyenv-doctor.git $RESOURCES_PATH/.pyenv/plugins/pyenv-doctor && \
     git clone https://github.com/pyenv/pyenv-update.git $RESOURCES_PATH/.pyenv/plugins/pyenv-update && \
     git clone https://github.com/pyenv/pyenv-which-ext.git $RESOURCES_PATH/.pyenv/plugins/pyenv-which-ext && \
-    ${APT_UPDATE} && \
+    apt-get update > /dev/null && \
     # TODO: lib might contain high vulnerability
     # Required by pyenv
     apt-get install -y --no-install-recommends libffi-dev && \
@@ -304,7 +302,7 @@ ENV PATH=$RESOURCES_PATH/.pyenv/shims:$RESOURCES_PATH/.pyenv/bin:$PATH \
     PYENV_ROOT=$RESOURCES_PATH/.pyenv
 
 # Install pipx
-RUN pip install pipx ${NULL_OUT} && \
+RUN pip install pipx > /dev/null && \
     # Configure pipx
     python -m pipx ensurepath && \
     # Cleanup
@@ -313,7 +311,7 @@ ENV PATH=$HOME/.local/bin:$PATH
 
 # Install node.js
 RUN \
-    ${APT_UPDATE} && \
+    apt-get update > /dev/null && \
     # https://nodejs.org/en/about/releases/ use even numbered releases, i.e. LTS versions
     curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash - && \
     apt-get install -y nodejs && \
@@ -361,16 +359,16 @@ RUN \
     # rm /usr/bin/python3 && \
     # rm /usr/bin/python3.5
     ln -s -f $CONDA_ROOT/bin/python /usr/bin/python && \
-    ${APT_UPDATE} && \
+    apt-get update > /dev/null && \
     # upgrade pip
-    pip install --upgrade pip ${NULL_OUT} && \
+    pip install --upgrade pip > /dev/null && \
     # If minimal flavor - install
     if [ "$WORKSPACE_FLAVOR" = "minimal" ]; then \
         # Install nomkl - mkl needs lots of space
         conda install -y --update-all 'python='$PYTHON_VERSION nomkl ; \
     else \
         # Install mkl for faster computations
-        conda install -y --update-all 'python='$PYTHON_VERSION mkl-service mkl ${NULL_OUT}; \
+        conda install -y --update-all 'python='$PYTHON_VERSION mkl-service mkl > /dev/null; \
     fi && \
     # Install some basics - required to run container
     conda install -y --update-all \
@@ -386,13 +384,13 @@ RUN \
             'scipy==1.7.*' \
             'numpy==1.19.*' \
             scikit-learn \
-            numexpr ${NULL_OUT} && \
+            numexpr > /dev/null && \
             # installed via apt-get and pip: protobuf \
             # installed via apt-get: zlib  && \
     # Switch of channel priority, makes some trouble
     conda config --system --set channel_priority false && \
     # Install minimal pip requirements
-    pip install --no-cache-dir --upgrade --upgrade-strategy only-if-needed -r ${RESOURCES_PATH}/libraries/requirements-minimal.txt ${NULL_OUT} && \
+    pip install --no-cache-dir --upgrade --upgrade-strategy only-if-needed -r ${RESOURCES_PATH}/libraries/requirements-minimal.txt > /dev/null && \
     # If minimal flavor - exit here
     if [ "$WORKSPACE_FLAVOR" = "minimal" ]; then \
         # Remove pandoc - package for markdown conversion - not needed
@@ -408,13 +406,13 @@ RUN \
     conda install -y --freeze-installed  \
         'python='$PYTHON_VERSION \
         boost \
-        mkl-include ${NULL_OUT} && \
+        mkl-include > /dev/null && \
     # Install mkldnn
-    conda install -y --freeze-installed -c mingfeima mkldnn ${NULL_OUT} && \
+    conda install -y --freeze-installed -c mingfeima mkldnn > /dev/null && \
     # Install pytorch - cpu only
-    conda install -y -c pytorch "pytorch==1.9.*" cpuonly ${NULL_OUT} && \
+    conda install -y -c pytorch "pytorch==1.9.*" cpuonly > /dev/null && \
     # Install light pip requirements
-    pip install --no-cache-dir --upgrade --upgrade-strategy only-if-needed -r ${RESOURCES_PATH}/libraries/requirements-light.txt ${NULL_OUT} && \
+    pip install --no-cache-dir --upgrade --upgrade-strategy only-if-needed -r ${RESOURCES_PATH}/libraries/requirements-light.txt > /dev/null && \
     # If light light flavor - exit here
     if [ "$WORKSPACE_FLAVOR" = "light" ]; then \
         # Fix permissions
@@ -432,24 +430,24 @@ RUN \
     apt-get install -y --no-install-recommends libtbb-dev && \
     # required for tesseract: 11MB - tesseract-ocr-dev?
     apt-get install -y --no-install-recommends libtesseract-dev && \
-    pip install --no-cache-dir tesserocr ${NULL_OUT} && \
+    pip install --no-cache-dir tesserocr > /dev/null && \
     # TODO: installs tenserflow 2.4 - Required for tensorflow graphics (9MB)
-    apt-get install -y --no-install-recommends libopenexr-dev ${NULL_OUT} && \
+    apt-get install -y --no-install-recommends libopenexr-dev > /dev/null && \
     #pip install --no-cache-dir tensorflow-graphics==2020.5.20 && \
     # GCC OpenMP (GOMP) support library
-    apt-get install -y --no-install-recommends libgomp1 ${NULL_OUT} && \
+    apt-get install -y --no-install-recommends libgomp1 > /dev/null && \
     # Install Intel(R) Compiler Runtime - numba optimization
     # TODO: don't install, results in memory error: conda install -y --freeze-installed -c numba icc_rt && \
     # Install libjpeg turbo for speedup in image processing
-    conda install -y --freeze-installed libjpeg-turbo ${NULL_OUT} && \
+    conda install -y --freeze-installed libjpeg-turbo > /dev/null && \
     # Add snakemake for workflow management
-    conda install -y -c bioconda -c conda-forge snakemake-minimal ${NULL_OUT} && \
+    conda install -y -c bioconda -c conda-forge snakemake-minimal > /dev/null && \
     # Add mamba as conda alternativ
-    conda install -y -c conda-forge mamba ${NULL_OUT} && \
+    conda install -y -c conda-forge mamba > /dev/null && \
     # Faiss - A library for efficient similarity search and clustering of dense vectors.
-    conda install -y --freeze-installed faiss-cpu ${NULL_OUT} && \
+    conda install -y --freeze-installed faiss-cpu > /dev/null && \
     # Install full pip requirements
-    pip install --no-cache-dir --upgrade --upgrade-strategy only-if-needed --use-deprecated=legacy-resolver -r ${RESOURCES_PATH}/libraries/requirements-full.txt ${NULL_OUT} && \
+    pip install --no-cache-dir --upgrade --upgrade-strategy only-if-needed --use-deprecated=legacy-resolver -r ${RESOURCES_PATH}/libraries/requirements-full.txt > /dev/null && \
     # Setup Spacy
     # Spacy - download and large language removal
     python -m spacy download en && \
@@ -502,7 +500,7 @@ RUN \
     # Disable pydeck extension, cannot be loaded (404)
     jupyter nbextension disable pydeck/extension && \
     # Install and activate Jupyter Tensorboard
-    pip install --no-cache-dir git+https://github.com/InfuseAI/jupyter_tensorboard.git ${NULL_OUT} && \
+    pip install --no-cache-dir git+https://github.com/InfuseAI/jupyter_tensorboard.git > /dev/null && \
     jupyter tensorboard enable --sys-prefix && \
     # TODO moved to configuration files = resources/jupyter/nbconfig Edit notebook config
     # echo '{"nbext_hide_incompat": false}' > $HOME/.jupyter/nbconfig/common.json && \
@@ -525,7 +523,7 @@ RUN \
         exit 0 ; \
     fi && \
     # Install and activate what if tool
-    pip install witwidget ${NULL_OUT} && \
+    pip install witwidget > /dev/null && \
     jupyter nbextension install --py --symlink --sys-prefix witwidget && \
     jupyter nbextension enable --py --sys-prefix witwidget && \
     # Activate qgrid
@@ -563,10 +561,10 @@ RUN \
     $lab_ext_install @jupyterlab/toc && \
     # install temporarily from gitrepo due to the issue that jupyterlab_tensorboard does not work with 3.x yet as described here: https://github.com/chaoleili/jupyterlab_tensorboard/issues/28#issuecomment-783594541
     #$lab_ext_install jupyterlab_tensorboard && \
-    pip install git+https://github.com/chaoleili/jupyterlab_tensorboard.git ${NULL_OUT} && \
+    pip install git+https://github.com/chaoleili/jupyterlab_tensorboard.git > /dev/null && \
     # install jupyterlab git
     # $lab_ext_install @jupyterlab/git && \
-    pip install jupyterlab-git ${NULL_OUT} && \
+    pip install jupyterlab-git > /dev/null && \
     # jupyter serverextension enable --py jupyterlab_git && \
     # For Matplotlib: https://github.com/matplotlib/jupyter-matplotlib
     #$lab_ext_install jupyter-matplotlib && \
@@ -590,7 +588,7 @@ RUN \
     # produces build error: jupyter labextension install jupyterlab-chart-editor && \
     $lab_ext_install jupyterlab-chart-editor && \
     # Install jupyterlab variable inspector - https://github.com/lckr/jupyterlab-variableInspector
-    pip install lckr-jupyterlab-variableinspector ${NULL_OUT} && \
+    pip install lckr-jupyterlab-variableinspector > /dev/null && \
     # For holoview
     # TODO: pyviz is not yet supported by the current JupyterLab version
     #     $lab_ext_install @pyviz/jupyterlab_pyviz && \
@@ -599,8 +597,31 @@ RUN \
     # $lab_ext_install @jupyterlab/debugger && \
     # Install jupyterlab code formattor - https://github.com/ryantam626/jupyterlab_code_formatter
     $lab_ext_install @ryantam626/jupyterlab_code_formatter && \
-    pip install jupyterlab_code_formatter ${NULL_OUT} && \
+    pip install jupyterlab_code_formatter > /dev/null && \
     jupyter serverextension enable --py jupyterlab_code_formatter \
+    # install more...  monitor execute_time collapsible_headings spellchecker
+    && pip install  jupyterlab-topbar jupyterlab-system-monitor \
+       jupyterlab_execute_time aquirdturtle_collapsible_headings \
+       jupyterlab-spellchecker jupyterlab-drawio \
+       jupyterlab_theme_solarized_dark jupyterlab_theme_hale jupyterlab-horizon-theme theme-darcula  \
+    && pip install jupyterlab-fasta && \
+        pip install jupyterlab-geojson && \
+        pip install jupyterlab-katex && \
+        pip install jupyterlab-mathjax3 && \
+        pip install jupyterlab-vega2 && \
+        pip install jupyterlab-vega3 \
+    # to install the topbar-text extension
+    && $lab_ext_install jupyterlab-topbar-text \
+    # latex support
+    && $lab_ext_install  @jupyterlab/latex \
+    # xls excel
+    && $lab_ext_install jupyterlab-spreadsheet \
+    # theme
+    && $lab_ext_install @yeebc/jupyterlab_neon_theme \
+    && $lab_ext_install  jupyterlab-tailwind-theme \
+     && $lab_ext_install @yudai-nkt/jupyterlab_city-lights-theme \
+    # hub topbar
+    && $lab_ext_install @fissio/hub-topbar-buttons \
     # Final build with minimization
     && jupyter lab build -y --debug-log-path=/dev/stdout --log-level=WARN && \
     jupyter lab build && \
