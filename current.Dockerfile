@@ -620,8 +620,6 @@ RUN \
     && $lab_ext_install @yeebc/jupyterlab_neon_theme \
     && $lab_ext_install  jupyterlab-tailwind-theme \
      && $lab_ext_install @yudai-nkt/jupyterlab_city-lights-theme \
-    # hub topbar
-    && $lab_ext_install @fissio/hub-topbar-buttons \
     # Final build with minimization
     && jupyter lab build -y --debug-log-path=/dev/stdout --log-level=WARN && \
     jupyter lab build && \
@@ -708,7 +706,6 @@ ENV CONFIG_BACKUP_ENABLED="true" \
     AUTHENTICATE_VIA_JUPYTER="false" \
     DATA_ENVIRONMENT=$WORKSPACE_HOME"/environment" \
     WORKSPACE_BASE_URL="/" \
-    INCLUDE_TUTORIALS="true" \
     # Main port used for sshl proxy -> can be changed
     WORKSPACE_PORT="8080" \
     # Set zsh as default shell (e.g. in jupyter)
