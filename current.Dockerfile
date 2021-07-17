@@ -4,7 +4,7 @@ USER root
 
 ### BASICS ###
 # Technical Environment Variables
-ENV \
+ENV TZ=Asia/Shanghai \
     SHELL="/bin/bash" \
     HOME="/root"  \
     # Nobteook server user: https://github.com/jupyter/docker-stacks/blob/master/base-notebook/Dockerfile#L33
@@ -22,7 +22,9 @@ ENV \
 
 WORKDIR $HOME
 
-# Make folders
+
+
+# Make folders && 设置时区
 RUN \
     mkdir $RESOURCES_PATH && chmod a+rwx $RESOURCES_PATH && \
     mkdir $WORKSPACE_HOME && chmod a+rwx $WORKSPACE_HOME && \
@@ -37,7 +39,7 @@ COPY resources/scripts/fix-permissions.sh  /usr/bin/fix-permissions.sh
     chmod a+rwx /usr/bin/clean-layer.sh && \
     chmod a+rwx /usr/bin/fix-permissions.sh
 
-# Generate and Set locals
+# Generate and Set locals && tz
 # https://stackoverflow.com/questions/28405902/how-to-set-the-locale-inside-a-debian-ubuntu-docker-container#38553499
 RUN \
     apt-get update > /dev/null && \
@@ -47,6 +49,10 @@ RUN \
     locale-gen && \
     dpkg-reconfigure --frontend=noninteractive locales && \
     update-locale LANG=en_US.UTF-8 && \
+    # 设置时区
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
+    echo "Asia/Shanghai" > /etc/timezone && \
+    dpkg-reconfigure -f noninteractive tzdata && \
     # Cleanup
     ${CLEAN_SH}
 
@@ -196,12 +202,11 @@ RUN \
     ldconfig && \
     # Fix permissions
     fix-permissions.sh $HOME && \
+    # Add tini
+    wget --no-verbose https://github.com/krallin/tini/releases/download/v0.19.0/tini -O /tini && \
+    chmod +x /tini && \
     # Cleanup
     ${CLEAN_SH}
-
-# Add tini
-RUN wget --no-verbose https://github.com/krallin/tini/releases/download/v0.19.0/tini -O /tini && \
-    chmod +x /tini
 
 # prepare ssh for inter-container communication for remote python kernel
 RUN \
@@ -281,8 +286,8 @@ RUN wget --no-verbose https://repo.anaconda.com/miniconda/Miniconda3-py38_${COND
 
 ENV PATH=$CONDA_ROOT/bin:$PATH
 
-# There is nothing added yet to LD_LIBRARY_PATH, so we can overwrite
-ENV LD_LIBRARY_PATH=$CONDA_ROOT/lib
+# fix
+ENV LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$CONDA_ROOT/lib
 
 # Install pyenv to allow dynamic creation of python versions
 RUN git clone https://github.com/pyenv/pyenv.git $RESOURCES_PATH/.pyenv && \
@@ -478,65 +483,65 @@ COPY resources/jupyter/nbconfig /etc/jupyter/nbconfig
 COPY resources/jupyter/jupyter_notebook_config.json /etc/jupyter/
 
 # install jupyter extensions
-RUN \
-    # Create empty notebook configuration
-    mkdir -p $HOME/.jupyter/nbconfig/ && \
-    printf "{\"load_extensions\": {}}" > $HOME/.jupyter/nbconfig/notebook.json && \
-    # Activate and configure extensions
-    jupyter contrib nbextension install --sys-prefix && \
-    # nbextensions configurator
-    jupyter nbextensions_configurator enable --sys-prefix && \
-    # Configure nbdime
-    nbdime config-git --enable --global && \
-    # Activate Jupytext
-    jupyter nbextension enable --py jupytext --sys-prefix && \
-    # Enable useful extensions
-    jupyter nbextension enable skip-traceback/main --sys-prefix && \
-    # jupyter nbextension enable comment-uncomment/main && \
-    jupyter nbextension enable toc2/main --sys-prefix && \
-    jupyter nbextension enable execute_time/ExecuteTime --sys-prefix && \
-    jupyter nbextension enable collapsible_headings/main --sys-prefix && \
-    jupyter nbextension enable codefolding/main --sys-prefix && \
-    # Disable pydeck extension, cannot be loaded (404)
-    jupyter nbextension disable pydeck/extension && \
-    # Install and activate Jupyter Tensorboard
-    pip install --no-cache-dir git+https://github.com/InfuseAI/jupyter_tensorboard.git > /dev/null && \
-    jupyter tensorboard enable --sys-prefix && \
-    # TODO moved to configuration files = resources/jupyter/nbconfig Edit notebook config
-    # echo '{"nbext_hide_incompat": false}' > $HOME/.jupyter/nbconfig/common.json && \
-    cat $HOME/.jupyter/nbconfig/notebook.json | jq '.toc2={"moveMenuLeft": false,"widenNotebook": false,"skip_h1_title": false,"sideBar": true,"number_sections": false,"collapse_to_match_collapsible_headings": true}' > tmp.$$.json && mv tmp.$$.json $HOME/.jupyter/nbconfig/notebook.json && \
-    # If minimal flavor - exit here
-    if [ "$WORKSPACE_FLAVOR" = "minimal" ]; then \
-        # Cleanup
-        ${CLEAN_SH} && \
-        exit 0 ; \
-    fi && \
-    # TODO: Not installed. Disable Jupyter Server Proxy
-    # jupyter nbextension disable jupyter_server_proxy/tree --sys-prefix && \
-    # Install jupyter black
-    jupyter nbextension install https://github.com/drillan/jupyter-black/archive/master.zip --sys-prefix && \
-    jupyter nbextension enable jupyter-black-master/jupyter-black --sys-prefix && \
-    # If light flavor - exit here
-    if [ "$WORKSPACE_FLAVOR" = "light" ]; then \
-        # Cleanup
-        ${CLEAN_SH} && \
-        exit 0 ; \
-    fi && \
-    # Install and activate what if tool
-    pip install witwidget > /dev/null && \
-    jupyter nbextension install --py --symlink --sys-prefix witwidget && \
-    jupyter nbextension enable --py --sys-prefix witwidget && \
-    # Activate qgrid
-    jupyter nbextension enable --py --sys-prefix qgrid && \
-    # TODO: Activate Colab support
-    # jupyter serverextension enable --py jupyter_http_over_ws && \
-    # Activate Voila Rendering
-    # currently not working jupyter serverextension enable voila --sys-prefix && \
-    # Enable ipclusters
-    ipcluster nbextension enable && \
-    # Fix permissions? fix-permissions.sh $CONDA_ROOT && \
-    # Cleanup
-    ${CLEAN_SH}
+# RUN \
+#     # Create empty notebook configuration
+#     mkdir -p $HOME/.jupyter/nbconfig/ && \
+#     printf "{\"load_extensions\": {}}" > $HOME/.jupyter/nbconfig/notebook.json && \
+#     # Activate and configure extensions
+#     jupyter contrib nbextension install --sys-prefix && \
+#     # nbextensions configurator
+#     jupyter nbextensions_configurator enable --sys-prefix && \
+#     # Configure nbdime
+#     nbdime config-git --enable --global && \
+#     # Activate Jupytext
+#     jupyter nbextension enable --py jupytext --sys-prefix && \
+#     # Enable useful extensions
+#     jupyter nbextension enable skip-traceback/main --sys-prefix && \
+#     # jupyter nbextension enable comment-uncomment/main && \
+#     jupyter nbextension enable toc2/main --sys-prefix && \
+#     jupyter nbextension enable execute_time/ExecuteTime --sys-prefix && \
+#     jupyter nbextension enable collapsible_headings/main --sys-prefix && \
+#     jupyter nbextension enable codefolding/main --sys-prefix && \
+#     # Disable pydeck extension, cannot be loaded (404)
+#     jupyter nbextension disable pydeck/extension && \
+#     # Install and activate Jupyter Tensorboard
+#     pip install --no-cache-dir git+https://github.com/InfuseAI/jupyter_tensorboard.git > /dev/null && \
+#     jupyter tensorboard enable --sys-prefix && \
+#     # TODO moved to configuration files = resources/jupyter/nbconfig Edit notebook config
+#     # echo '{"nbext_hide_incompat": false}' > $HOME/.jupyter/nbconfig/common.json && \
+#     cat $HOME/.jupyter/nbconfig/notebook.json | jq '.toc2={"moveMenuLeft": false,"widenNotebook": false,"skip_h1_title": false,"sideBar": true,"number_sections": false,"collapse_to_match_collapsible_headings": true}' > tmp.$$.json && mv tmp.$$.json $HOME/.jupyter/nbconfig/notebook.json && \
+#     # If minimal flavor - exit here
+#     if [ "$WORKSPACE_FLAVOR" = "minimal" ]; then \
+#         # Cleanup
+#         ${CLEAN_SH} && \
+#         exit 0 ; \
+#     fi && \
+#     # TODO: Not installed. Disable Jupyter Server Proxy
+#     # jupyter nbextension disable jupyter_server_proxy/tree --sys-prefix && \
+#     # Install jupyter black
+#     jupyter nbextension install https://github.com/drillan/jupyter-black/archive/master.zip --sys-prefix && \
+#     jupyter nbextension enable jupyter-black-master/jupyter-black --sys-prefix && \
+#     # If light flavor - exit here
+#     if [ "$WORKSPACE_FLAVOR" = "light" ]; then \
+#         # Cleanup
+#         ${CLEAN_SH} && \
+#         exit 0 ; \
+#     fi && \
+#     # Install and activate what if tool
+#     pip install witwidget > /dev/null && \
+#     jupyter nbextension install --py --symlink --sys-prefix witwidget && \
+#     jupyter nbextension enable --py --sys-prefix witwidget && \
+#     # Activate qgrid
+#     jupyter nbextension enable --py --sys-prefix qgrid && \
+#     # TODO: Activate Colab support
+#     # jupyter serverextension enable --py jupyter_http_over_ws && \
+#     # Activate Voila Rendering
+#     # currently not working jupyter serverextension enable voila --sys-prefix && \
+#     # Enable ipclusters
+#     ipcluster nbextension enable && \
+#     # Fix permissions? fix-permissions.sh $CONDA_ROOT && \
+#     # Cleanup
+#     ${CLEAN_SH}
 
 # install jupyterlab
 RUN \
@@ -600,16 +605,23 @@ RUN \
     pip install jupyterlab_code_formatter > /dev/null && \
     jupyter serverextension enable --py jupyterlab_code_formatter \
     # install more...  monitor execute_time collapsible_headings spellchecker
-    && pip install  jupyterlab-topbar jupyterlab-system-monitor \
-       jupyterlab_execute_time aquirdturtle_collapsible_headings \
-       jupyterlab-spellchecker jupyterlab-drawio \
-       jupyterlab_theme_solarized_dark jupyterlab_theme_hale jupyterlab-horizon-theme theme-darcula  \
-    && pip install jupyterlab-fasta && \
-        pip install jupyterlab-geojson && \
-        pip install jupyterlab-katex && \
-        pip install jupyterlab-mathjax3 && \
-        pip install jupyterlab-vega2 && \
-        pip install jupyterlab-vega3 \
+    && pip install  jupyterlab-topbar \
+    && pip install   jupyterlab-system-monitor \
+    && pip install    jupyterlab_execute_time \
+    && pip install aquirdturtle_collapsible_headings \
+    && pip install  jupyterlab-spellchecker \
+    && pip install jupyterlab-drawio \
+    && pip install  jupyterlab_theme_solarized_dark \
+    && pip install jupyterlab_theme_hale \
+    && pip install jupyterlab-horizon-theme \
+    && pip install theme-darcula  \
+    && pip install jupyterlab-fasta \
+    && pip install jupyterlab-geojson \
+    &&  pip install jupyterlab-katex \
+    &&  pip install jupyterlab-mathjax3 \
+    &&  pip install jupyterlab-vega2 \
+    &&  pip install jupyterlab-vega3 \
+    &&  pip install jupyterlab-language-pack-zh-CN \
     # to install the topbar-text extension
     && $lab_ext_install jupyterlab-topbar-text \
     # latex support
@@ -632,11 +644,12 @@ RUN \
     ${CLEAN_SH}
 
 # Additional jupyter configuration
-COPY resources/jupyter/jupyter_notebook_config.py /etc/jupyter/
+
 COPY resources/jupyter/sidebar.jupyterlab-settings $HOME/.jupyter/lab/user-settings/@jupyterlab/application-extension/
 COPY resources/jupyter/plugin.jupyterlab-settings $HOME/.jupyter/lab/user-settings/@jupyterlab/extensionmanager-extension/
-COPY resources/jupyter/ipython_config.py /etc/ipython/ipython_config.py
-
+COPY resources/jupyter/plugin/topbar-text.plugin.jupyterlab-settings $HOME/.jupyter/lab/user-settings/jupyterlab-topbar-text/plugin.jupyterlab-settings
+COPY resources/bashrc $HOME/.bashrc
+COPY resources/jupyter/SimHei.ttf $CONDA_PYTHON_DIR/site-packages/matplotlib/mpl-data/fonts/ttf/SimHei.ttf
 COPY resources/branding $RESOURCES_PATH/branding
 
 # Branding of various components
@@ -652,19 +665,16 @@ RUN \
     git config --global credential.helper 'cache --timeout=31540000'
 
 # Configure Matplotlib
-RUN \
+RUN echo 'font.family : SimHei \n\
+font.serif : SimHei, DejaVu Serif, Bitstream Vera Serif, \
+Computer Modern Roman, New Century Schoolbook, \
+Century Schoolbook L, Utopia, ITC Bookman, Bookman, \
+Nimbus Roman No9 L, Times New Roman, \
+Times, Palatino, Charter, serif\n ' >> $CONDA_PYTHON_DIR/site-packages/matplotlib/mpl-data/matplotlibrc && \
     # Import matplotlib the first time to build the font cache.
     MPLBACKEND=Agg python -c "import matplotlib.pyplot" \
     # Stop Matplotlib printing junk to the console on first load
     sed -i "s/^.*Matplotlib is building the font cache using fc-list.*$/# Warning removed/g" $CONDA_PYTHON_DIR/site-packages/matplotlib/font_manager.py
-
-
-
-
-# Various configurations
-RUN \
-    # Set /my_data as default directory to navigate to as root user
-    echo 'cd '$WORKSPACE_HOME >> $HOME/.bashrc
 
 # MKL and Hardware Optimization
 # Fix problem with MKL with duplicated libiomp5: https://github.com/dmlc/xgboost/issues/1715
@@ -708,8 +718,7 @@ ENV CONFIG_BACKUP_ENABLED="true" \
     WORKSPACE_BASE_URL="/" \
     # Main port used for sshl proxy -> can be changed
     WORKSPACE_PORT="8080" \
-    # Set zsh as default shell (e.g. in jupyter)
-    SHELL="/usr/bin/zsh" \
+    SHELL="/bin/bash" \
     # Fix dark blue color for ls command (unreadable):
     # https://askubuntu.com/questions/466198/how-do-i-change-the-color-for-directories-with-ls-in-the-console
     # USE default LS_COLORS - Dont set LS COLORS - overwritten in zshrc

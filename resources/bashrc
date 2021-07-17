@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# jupyterhub.bilibili.co
+# @shuaiyangyang
+#
+#
+#
+# ==============================================================================
+
+# If not running interactively, don't do anything
+[ -z "$PS1" ] && return
+
+export PS1="\[\e[36m\]bili-docker\[\e[m\] \[\e[33m\]\w\[\e[m\] > "
+export TERM=xterm-256color
+alias grep="grep --color=auto"
+alias ls="ls --color=auto"
+
+echo -e "\e[1;36m"
+cat<<TF
+                     //
+         \\         //
+          \\       //
+    ##DDDDDDDDDDDDDDDDDDDDDD##
+    ## DDDDDDDDDDDDDDDDDDDD ##
+    ## hh                hh ##
+    ## hh    //    \\    hh ##
+    ## hh   //      \\   hh ##
+    ## hh                hh ##
+    ## hh      wwww      hh ##
+    ## hh                hh ##
+    ## MMMMMMMMMMMMMMMMMMMM ##
+    ##MMMMMMMMMMMMMMMMMMMMMM##
+         \/            \/
+
+    http://jupyterhub.bilibili.co
+    provider by @shuaiyangyang
+TF
+echo -e "\e[0;31m"
+
+cat <<WARN
+WARNING: 当前运行环境为苏州IDC容器实例
+持久化目录: /my_data(for jupyterhub), /DATA/jupyter/personal(for coues jupyter)
+实例回收后,非持久化目录的数据(包括安装的软件包)将会丢失,
+为了您的个人数据安全,建议:
+  1. 个人数据放到持久化目录, 临时数据放到其他任意目录均可
+  2. 修改系统配置或安装新软件后, 制作镜像快照,下次创建实例时,选择对应的快照启动
+WARN
+
+# Turn off colors
+echo -e "\e[m"
+
+if [[ -d "/my_data" ]]; then
+    cd /my_data
+fi
+
+if [[ -d "/DATA/jupyer" ]]; then
+    cd /DATA/jupyer
+fi
