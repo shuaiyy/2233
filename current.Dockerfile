@@ -480,7 +480,7 @@ COPY \
 # Configure Jupyter / JupyterLab
 # Add as jupyter system configuration
 COPY resources/jupyter/nbconfig /etc/jupyter/nbconfig
-COPY resources/jupyter/jupyter_notebook_config.json /etc/jupyter/
+# COPY resources/jupyter/jupyter_notebook_config.json /etc/jupyter/
 
 # install jupyter extensions
 # RUN \
@@ -662,7 +662,7 @@ RUN \
     git config --global core.fileMode false && \
     git config --global http.sslVerify false && \
     # Use store or credentialstore instead? timout == 365 days validity
-    git config --global credential.helper 'cache --timeout=31540000'
+    git config --global credential.helper 'cache --timeout=31540000' && chmod +x $HOME/.bashrc
 
 # Configure Matplotlib
 RUN echo 'font.family : SimHei \n\
