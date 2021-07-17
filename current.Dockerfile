@@ -480,7 +480,7 @@ COPY \
 # Configure Jupyter / JupyterLab
 # Add as jupyter system configuration
 COPY resources/jupyter/nbconfig /etc/jupyter/nbconfig
-COPY resources/jupyter/jupyterlab_language_pack_zh_CN-0.0.1.dev0-py2.py3-none-any.whl /tmp/jupyterlab_language_pack_zh_CN.whl
+COPY resources/jupyter/jupyterlab_language_pack_zh_CN-0.0.1.dev0-py2.py3-none-any.whl /tmp/jupyterlab_language_pack_zh_CN-0.0.1.dev0-py2.py3-none-any.whl
 
 # install jupyter extensions
 # RUN \
@@ -622,7 +622,8 @@ RUN \
     &&  pip install jupyterlab-vega2 \
     &&  pip install jupyterlab-vega3 \
     # 中文语言汉化包
-    &&  pip install /tmp/jupyterlab_language_pack_zh_CN.whl && rm -rf /tmp/jupyterlab_language_pack_zh_CN.whl \
+    &&  pip install /tmp/jupyterlab_language_pack_zh_CN-0.0.1.dev0-py2.py3-none-any.whl \
+    && rm -rf /tmp/jupyterlab_language_pack_zh_CN-0.0.1.dev0-py2.py3-none-any.whl \
     # to install the topbar-text extension
     && $lab_ext_install jupyterlab-topbar-text \
     # latex support
