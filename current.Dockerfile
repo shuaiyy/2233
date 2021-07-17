@@ -43,7 +43,7 @@ COPY resources/scripts/fix-permissions.sh  /usr/bin/fix-permissions.sh
 # https://stackoverflow.com/questions/28405902/how-to-set-the-locale-inside-a-debian-ubuntu-docker-container#38553499
 RUN \
     apt-get update > /dev/null && \
-    apt-get install -y locales && \
+    apt-get install -y locales tzdata && \
     # install locales-all?
     sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
     locale-gen && \
