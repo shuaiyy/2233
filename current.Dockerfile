@@ -647,8 +647,12 @@ RUN \
 
 # Additional jupyter configuration
 
+COPY resources/jupyter/jupyter_notebook_config.py /etc/jupyter/jupyter_notebook_config.py
 COPY resources/jupyter/sidebar.jupyterlab-settings $HOME/.jupyter/lab/user-settings/@jupyterlab/application-extension/
 COPY resources/jupyter/plugin.jupyterlab-settings $HOME/.jupyter/lab/user-settings/@jupyterlab/extensionmanager-extension/
+# 时间记录开启
+COPY resources/jupyter/plugin/tracker.jupyterlab-settings $HOME/.jupyter/lab/user-settings/@jupyterlab/notebook-extension/tracker.jupyterlab-settings
+# topbar text
 COPY resources/jupyter/plugin/topbar-text.plugin.jupyterlab-settings $HOME/.jupyter/lab/user-settings/jupyterlab-topbar-text/plugin.jupyterlab-settings
 COPY resources/bashrc $HOME/.bashrc
 COPY resources/jupyter/SimHei.ttf $CONDA_PYTHON_DIR/site-packages/matplotlib/mpl-data/fonts/ttf/SimHei.ttf
