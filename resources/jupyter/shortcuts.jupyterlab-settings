@@ -1,0 +1,48 @@
+{
+    // List of keyboard shortcuts:
+    "shortcuts": [
+        {
+            "command": "notebook:move-cell-down",
+            "keys": [
+            "Alt B"
+            ],
+            "selector": ".jp-Notebook:focus",
+            "title": "Move Cells Down",
+            "category": "Notebook Cell Operations"
+        },
+        {
+            "command": "notebook:move-cell-up",
+            "keys": [
+            "Alt A"
+            ],
+            "selector": ".jp-Notebook:focus",
+            "title": "Move Cells Down",
+            "category": "Notebook Cell Operations"
+        },
+        {
+            "command": "notebook:enable-output-scrolling",
+            "keys": [
+            "S"
+            ],
+            "selector": ".jp-Notebook:focus",
+            "title": "Enable output scrolling",
+            "category": "Notebook Cell Operations"
+        },
+         {
+            "command": "notebook:disable-output-scrolling",
+            "keys": [
+            "Alt S"
+            ],
+            "selector": ".jp-Notebook:focus",
+            "title": "Enable output scrolling",
+            "category": "Notebook Cell Operations"
+        },
+        {
+            "command": "full_screen:toggle",
+            "keys": [
+                "F11"
+            ],
+            "selector": "body"
+        }
+    ]
+}
