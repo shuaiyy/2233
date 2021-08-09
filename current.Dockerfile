@@ -718,6 +718,45 @@ ENV KMP_DUPLICATE_LIB_OK="True" \
     # TODO: evaluate - Deactivate hdf5 file locking
     HDF5_USE_FILE_LOCKING=False
 
+# ------ python 包
+RUN pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/  \
+    easydict flask flask_cors flask-pymongo Jinja2 redis redis-py-cluster gunicorn \
+    pyhive seaborn yarl scipy scikit-learn datetime_truncate mpld3 plotly  \
+    && clean-layer.sh
+    
+# ------- R 环境
+RUN conda install --quiet --yes \
+    'r-base=4.1.0' \
+    'r-caret=6.*' \
+    'r-crayon=1.4*' \
+    'r-devtools=2.4*' \
+    'r-forecast=8.15*' \
+    'r-hexbin=1.28*' \
+    'r-htmltools=0.5*' \
+    'r-htmlwidgets=1.5*' \
+    'r-irkernel=1.2*' \
+    'r-nycflights13=1.0*' \
+    'r-randomforest=4.6*' \
+    'r-rcurl=1.98*' \
+    'r-rmarkdown=2.9*' \
+    'r-rodbc=1.3*' \
+    'r-rsqlite=2.2*' \
+    'r-shiny=1.6*' \
+    'r-tidymodels=0.1*' \
+    'r-tidyverse=1.3*' \
+    'unixodbc=2.3.*' \
+    'r-languageserver' \
+    'r-data.table' \
+    'r-reshape2' \
+    'r-plotly' \
+    'r-readxl' \
+    'r-rvest' \
+    'r-jiebard' \
+    'r-tibble' && \
+    # Install e1071 R package (dependency of the caret R package)
+    conda install --quiet --yes r-e1071 && \
+    clean-layer.sh
+
 # Set default values for environment variables
 ENV CONFIG_BACKUP_ENABLED="true" \
     SHUTDOWN_INACTIVE_KERNELS="false" \
