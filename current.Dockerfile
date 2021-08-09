@@ -563,7 +563,8 @@ RUN \
         ${CLEAN_SH} && \
         exit 0 ; \
     fi && \
-    $lab_ext_install @jupyterlab/toc && \
+    # https://github.com/jupyterlab/jupyterlab-toc  3.0 + 自带了toc插件
+    # $lab_ext_install @jupyterlab/toc && \
     # install temporarily from gitrepo due to the issue that jupyterlab_tensorboard does not work with 3.x yet as described here: https://github.com/chaoleili/jupyterlab_tensorboard/issues/28#issuecomment-783594541
     #$lab_ext_install jupyterlab_tensorboard && \
     pip install git+https://github.com/chaoleili/jupyterlab_tensorboard.git > /dev/null && \
@@ -723,7 +724,7 @@ RUN pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/  \
     easydict flask flask_cors flask-pymongo Jinja2 redis redis-py-cluster gunicorn \
     pyhive seaborn yarl scipy scikit-learn datetime_truncate mpld3 plotly  \
     && clean-layer.sh
-    
+
 # ------- R 环境
 RUN conda install --quiet --yes \
     'r-base=4.1.0' \
@@ -756,6 +757,22 @@ RUN conda install --quiet --yes \
     # Install e1071 R package (dependency of the caret R package)
     conda install --quiet --yes r-e1071 && \
     clean-layer.sh
+
+# golang运行环境
+RUN wget --no-check-certificate -O /tmp/go1.16.7.linux-amd64.tar.gz https://golang.org/dl/go1.16.7.linux-amd64.tar.gz && \
+   rm -rf /usr/local/go && tar -C /usr/local -xzf /tmp/go1.16.7.linux-amd64.tar.gz && \
+   rm -rf /tmp/go1.16.7.linux-amd64.tar.gz
+
+ENV PATH=$PATH:/usr/local/go/bin
+
+# go notebooks
+RUN env GO111MODULE=on go get github.com/gopherdata/gophernotes && \
+    mkdir -p ~/.local/share/jupyter/kernels/gophernotes && \
+    cd ~/.local/share/jupyter/kernels/gophernotes  && \
+    cp "$(go env GOPATH)"/pkg/mod/github.com/gopherdata/gophernotes@v0.7.3/kernel/*  "." && \
+    chmod +w ./kernel.json # in case copied kernel.json has no write permission && \
+    sed "s|gophernotes|$(go env GOPATH)/bin/gophernotes|" < kernel.json.in > kernel.json 
+
 
 # Set default values for environment variables
 ENV CONFIG_BACKUP_ENABLED="true" \

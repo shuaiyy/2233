@@ -18,3 +18,10 @@
 + 修复总内存不显示的bug
 + 默认不设置密码, ip 0.0.0.0 允许root
 + 增加快捷键
+
+
+## conda-bili-base-v4
++ add R运行环境
+
+## conda-bili-base-v5
++ add golang运行环境
