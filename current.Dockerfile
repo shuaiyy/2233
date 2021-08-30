@@ -725,6 +725,13 @@ RUN pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/  \
     pyhive seaborn yarl scipy scikit-learn datetime_truncate mpld3 plotly  \
     && clean-layer.sh
 
+# ------ pyhive 包
+RUN apt-get update && \
+  apt-get install -y -q  --no-install-recommends libnss-ldapd libpam-ldapd krb5-user \
+  krb5-config libpam-krb5 libpam-ccreds libkrb5-dev libsasl2-dev libsasl2-2 libsasl2-modules-gssapi-mit && \
+  pip install ibis-framework[impala] impyla thriftpy2 thrift_sasl kerberos pyhive \
+  && clean-layer.sh
+
 # ------- R 环境
 RUN conda install --quiet --yes \
     'r-base=4.1.0' \

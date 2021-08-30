@@ -25,3 +25,5 @@
 
 ## conda-bili-base-v5
 + add golang运行环境
+## conda-bili-base-v6
++ fix pyhive依赖
